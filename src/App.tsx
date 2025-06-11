@@ -1,13 +1,25 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+
+type Inputs = {
+  name: string;
+  value: number;
+  description: string;
+  quantity: number;
+};
 
 function App() {
-  const [resources, setResources] = useState<string[]>([]);
-  const [name, setName] = useState<string>("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<Inputs>();
 
-  const handleSendName = () => {
-    setResources((currentResources) => [...currentResources, name]);
-    setName("");
-  };
+  const [resources, setResources] = useState<string[]>([]);
+
+  const onSubmit = (data: Inputs) =>
+    setResources((prevResources) => [...prevResources, data.name]);
+
   return (
     <div
       style={{
@@ -21,21 +33,57 @@ function App() {
       }}
     >
       <span>Resources count: {resources.length}</span>
-      <div style={{ display: "flex", gap: "1rem" }}>
+      <form
+        style={{ display: "flex", gap: "1rem" }}
+        onSubmit={handleSubmit(onSubmit)}
+      >
         <input
-          type="text"
-          name="name"
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          {...register("name", {
+            required: "Name is required",
+            minLength: {
+              value: 3,
+              message: "Name must be at least 3 characters",
+            },
+            pattern: {
+              value: /^[A-Za-z\s]+$/, // letters and spaces only
+              message: "Name must contain only letters",
+            },
+          })}
+          placeholder="Name *"
         />
-        <button
-          type="button"
-          onClick={handleSendName}
-          disabled={name.length < 3}
-        >
-          Send
-        </button>
+        <input
+          {...register("value", {
+            required: "Value is required",
+            pattern: {
+              value: /^\d+(\.\d{1,2})?$/, // dot notation with optional 2 decimal places
+              message: "Use dot (.) for decimals, e.g. 10.99",
+            },
+          })}
+          type="number"
+          step="0.01"
+          placeholder="Value *"
+        />
+        <input {...register("description")} placeholder="Description" />
+        <input
+          {...register("quantity", {
+            validate: (value) => {
+              if (!value) return true;
+              const parsed = Number(value);
+              if (isNaN(parsed) || !Number.isInteger(parsed)) {
+                return "Quantity must be an integer";
+              }
+              return true;
+            },
+          })}
+          type="number"
+          placeholder="Quantity"
+        />
+        <button type="submit">Send</button>
+      </form>
+      <div style={{height: '7rem', display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <span>{errors?.name?.message || ""}</span>
+        <span>{errors?.value?.message || ""}</span>
+        <span>{errors?.quantity?.message || ""}</span>
       </div>
       <div
         style={{
@@ -70,7 +118,7 @@ function App() {
                   height: "2.2rem",
                   display: "grid",
                   placeItems: "center",
-                  outline: 'none'
+                  outline: "none",
                 }}
                 type="button"
               >
